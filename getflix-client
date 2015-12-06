@@ -1,0 +1,71 @@
+#!/usr/bin/env python
+# 2015, Stefan Andres
+# 
+# This script show set getflix regions and may specific services to regions
+#
+
+from __future__ import print_function
+
+import argparse
+import json
+import pprint
+
+import requests
+
+def options():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-k','--api-key', help=('Personal Getflix API key'), required=True)
+    parser.add_argument('-l','--list-available-regions', help=('List all '
+        'available Getflix regions and services'), action='store_true',
+        default=False)
+    parser.add_argument('-s','--set-region', help=('Set region (netflix=US)'),
+        nargs=1, dest='set_region')
+    args = parser.parse_args()
+    return args
+
+def list_avail_regions(args):
+    r = requests.get('https://www.getflix.com.au/api/v1/regions/list.json',
+        auth=(args.api_key, 'x'))
+    r.raise_for_status()
+    if "error" in r.text:
+        print('Getflix error (%s)' % (r.text))
+        exit(1)
+        
+    pprint.pprint(json.loads(r.text))
+
+    
+def list_regions(args):
+    r = requests.get('https://www.getflix.com.au/api/v1/regions.json',
+        auth=(args.api_key, 'x'))
+    r.raise_for_status()
+    if "error" in r.text:
+        print('Getflix error (%s)' % (r.text))
+        exit(1)
+
+    for x in json.loads(r.text):
+        print('%s (%s)' %(x['service'], x['region']))
+
+def set_region(args):
+    service, region = args.set_region[0].split('=')
+
+    r = requests.post('https://www.getflix.com.au/api/v1/regions.json',
+        json={"service": service, "region": region}, auth=(args.api_key, 'x'),
+        )
+    r.raise_for_status()
+
+    if "error" in r.text:
+        print('Getflix error (%s)' % (r.text))
+        exit(1)
+
+
+def main(args):
+    if args.list_available_regions:
+        list_avail_regions(args)
+    if args.set_region:
+        set_region(args)
+
+    list_regions(args)
+
+if __name__ == "__main__":
+    args = options()
+    main(args)
